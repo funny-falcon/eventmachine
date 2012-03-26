@@ -85,4 +85,65 @@ class TestWorkerQueue < Test::Unit::TestCase
       worker.close
     }
   end
+
+  def test_pull_queue
+    EM.run {
+      i = 0
+      worker = EM::WorkerQueue.new(
+        detecter.method(:for_each),
+        proc{
+          assert_equal 4, detecter.max
+          assert_equal 100, i
+          EM.stop
+        }
+      )
+      worker.on_empty{|wq|
+        i += 1
+        wq.concurrency = 4  if i == 50
+        if i == 100
+          wq.close
+        else
+          wq.push i
+        end
+      }
+      worker.run
+    }
+  end
+
+  def test_worker_with_queue
+    result = []
+    EM.run {
+      q = EM::Queue.new
+      q.push 1, 2, 3, 4, 5
+      after = proc{ EM.stop }
+      on_empty = proc{|wq| q.pop{|v| wq.push v} }
+      EM::WorkerQueue.new( :on_empty => on_empty ) { |num, iter|
+        result << num
+        iter.done
+      }
+      EM.add_timer(0.01,&after)
+    }
+    assert_equal (1..5).to_a, result
+  end
+
+  def test_worker_with_queue_pushing
+    result = []
+    EM.run {
+      q = EM::Queue.new
+      q.push 1, 2, 3, 4, 5
+      after = proc{ EM.stop }
+      on_empty = proc{|wq| q.pop{|v| wq.push v} }
+      EM::WorkerQueue.new( :on_empty => on_empty ){ |num,iter|
+        result << num
+        iter.done
+      }
+      q.push 6,7,8
+      # and after some time
+      push_to_queue = proc{ q.push 9,10}
+      EM.add_timer(0.01,&push_to_queue)
+      # stop this infinite Iterator
+      EM.add_timer(0.02,&after)
+    }
+    assert_equal (1..10).to_a, result
+  end
 end

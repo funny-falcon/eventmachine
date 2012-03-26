@@ -50,24 +50,40 @@ module EventMachine
     # Create a new worker queue with callbacks and concurrency level
     #
     # @overload new(&foreach)
+    # @overload new(on_done, &foreach)
     # @overload new(foreach, on_done, concurrency_level = 1)
-    # @overload new(:on_done => on_done, :concurrency_level => 1, &foreach)
-    # @overload new(foreach, :on_done => on_done, :concurrency_level => 1)
+    # @overload new(opts, &foreach)
+    # @overload new(foreach, opts)
+    #
+    # possible options:
+    #   :foreach     - proc called on every element
+    #   :on_done     - proc called after queue is closed
+    #   :concurrency - concurency level
+    #   :on_empty    - proc called when there is available level of concurency
     def initialize(*args, &cb)
       opts = Hash === args.last ? args.pop : {}
       @concurrency = opts[:concurrency]
       @concurrency ||= ::Numeric === args[2] ? args[2] : 1
-      @foreach = args[0] || cb
-      @on_done = args[1] || opts[:on_done]
+      if args[1].respond_to? :call
+        raise ArgumentError, "Should not provide both proc and block"  if cb
+        @foreach = args[0]
+        @on_done = args[1]
+      else
+        @foreach = args[0] || cb || opts[:foreach]
+        raise ArgumentError, "Should provide proc or block callback"  unless @foreach
+        @on_done = opts[:on_done]
+      end
+      @on_empty = opts[:on_empty]
       @items = []
       @pending = 0
       @closed = false
+      EM.schedule self  if @on_empty
     end
 
     # Set concurrency level, spawn more workers if there are waiting items
     def concurrency= v
-      @concurrency = v
-      EM.schedule self
+      @concurrency, more = v, @concurrency < v
+      EM.schedule self  if more
       v
     end
 
@@ -86,6 +102,30 @@ module EventMachine
     end
     alias :<< :push
 
+    # Setup pull callback which will pull new values for workers
+    # Callback should call WorkerQueue#push if there is new values
+    # or WorkerQueue#close if iteration is over
+    #
+    # If you use #on_empty callback, you should explicitely call #run
+    #
+    # @example
+    #
+    # a = Queue.new
+    # sum = 0
+    # wq = WorkerQueue.new(
+    #     proc{|v, w| sum += v; w.done},
+    #     pric{ puts sum },
+    #     :concurency => 10)
+    # wq.on_empty {|_wq| a.pop{|v| _wq.push(v)} }
+    #
+    # q.push(1)
+    # q.push(2)
+    # q.push(3)
+    def on_empty(*args, &blk)
+      @on_empty = EM.Callback(*args, &blk)
+      EM.schedule self
+    end
+
     # Stop waiting for a new values
     def close
       EM.schedule {
@@ -93,35 +133,46 @@ module EventMachine
         call
       }
     end
-    alias :closed? :closed
+    alias closed?  closed
+    alias stop     close
+    alias stopped? closed?
 
     def _return_worker
       EM.schedule do
         @pending -= 1
-        if !@items.empty?
-          if @pending < @concurrency
-            @pending += 1
-            EM.next_tick spawn_worker(@items.shift)
-          end
-        else
+        if !check_items
           EM.next_tick self
         end
       end
     end
 
     def call
-      if !@items.empty?
-        if @pending < @concurrency
-          @pending += 1
-          EM.next_tick spawn_worker(@items.shift)
-          EM.next_tick self  if @pending < @concurrency
-        end
+      if check_items
+        EM.next_tick self
       elsif @closed && @pending == 0 && @on_done
         EM.next_tick @on_done
       end
     end
+    alias run call
 
     private
+
+    def check_items
+      if @pending < @concurrency
+        if !@items.empty?
+          @pending += 1
+          EM.next_tick spawn_worker(@items.shift)
+          true
+        elsif @on_empty && !@closed
+          if @on_empty.arity == 0
+            EM.schedule @on_empty
+          else
+            EM.schedule{ @on_empty.call(self) }
+          end
+          true
+        end
+      end
+    end
 
     def spawn_worker(value)
       self.class::Worker.new(self, value, @foreach)
