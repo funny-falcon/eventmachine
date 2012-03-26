@@ -126,6 +126,25 @@ class TestWorkerQueue < Test::Unit::TestCase
     assert_equal (1..5).to_a, result
   end
 
+  def test_worker_with_queue_concurrency
+    result = []
+    EM.run {
+      q = EM::Queue.new
+      on_empty = proc{|wq| q.pop{|v| wq.push v} }
+      worker = EM::WorkerQueue.new(
+        detecter.method(:for_each),
+        proc {
+          assert_equal 4, detecter.max
+          EM.stop
+        },
+        :on_empty => on_empty,
+        :concurrency => 4
+      )
+      q.push *(1..10)
+      EM.add_timer(0.02){ worker.stop }
+    }
+  end
+
   def test_worker_with_queue_pushing
     result = []
     EM.run {
