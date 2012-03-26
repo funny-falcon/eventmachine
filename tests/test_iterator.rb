@@ -1,3 +1,5 @@
+# Copyright Petr Ianovich aka fl00r
+# https://github.com/fl00r
 require 'em_test_helper'
 
 class TestEnumerable

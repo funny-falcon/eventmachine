@@ -1,5 +1,16 @@
 require 'em/worker_queue'
 module EventMachine
+  Enumerator = if defined? ::Enumerable::Enumerator
+                 ::Enumerable::Enumerator
+               else
+                 ::Enumerator
+               end
+  Generater  = if defined? ::Generator
+                 ::Generator
+               else
+                 ::Enumerator::Generator
+               end
+
   # A simple iterator for concurrent asynchronous work.
   #
   # Unlike ruby's built-in iterators, the end of the current iteration cycle is signaled manually,
@@ -50,11 +61,6 @@ module EventMachine
     # will create an iterator over the range that processes 10 items at a time. Iteration
     # is started via #each, #map or #inject
     #
-    Enumerator = if defined? ::Enumerator
-                   ::Enumerator
-                 else
-                   ::Enumerable::Enumerator
-                 end
     def initialize(list, concurrency = 1)
       @enum = list
       @concurrency = concurrency
@@ -81,7 +87,9 @@ module EventMachine
     end
 
     def _iterate
-      if Enumerator === @enum || @enum.respond_to?(:next)
+      # We allow generator interface for Enumerator only in Ruby 1.9.x where Fiber is introduced
+      if @enum.respond_to?(:next) && (defined?(::Fiber) ||
+                                      !(Enumerator === @enum || Generator === @enum))
         @worker.on_empty{
           begin
             @worker.push @enum.next
