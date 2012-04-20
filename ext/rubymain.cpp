@@ -1050,6 +1050,17 @@ static VALUE conn_get_outbound_data_size (VALUE self)
 }
 
 
+/***************************
+conn_get_outbound_data_count
+***************************/
+
+static VALUE conn_get_outbound_data_count (VALUE self)
+{
+	VALUE sig = rb_ivar_get (self, Intern_at_signature);
+	return INT2NUM (evma_get_outbound_data_count (NUM2ULONG (sig)));
+}
+
+
 /******************************
 conn_associate_callback_target
 ******************************/
@@ -1300,6 +1311,7 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "ssl?", (VALUE(*)(...))t__ssl_p, 0);
 
 	rb_define_method (EmConnection, "get_outbound_data_size", (VALUE(*)(...))conn_get_outbound_data_size, 0);
+	rb_define_method (EmConnection, "get_outbound_data_count", (VALUE(*)(...))conn_get_outbound_data_count, 0);
 	rb_define_method (EmConnection, "associate_callback_target", (VALUE(*)(...))conn_associate_callback_target, 1);
 
 	rb_define_const (EmModule, "TimerFired", INT2NUM(100));

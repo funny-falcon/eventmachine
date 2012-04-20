@@ -328,6 +328,16 @@ module EventMachine
       EventMachine::send_data @signature, data, size
     end
 
+    # Returns amount of data waiting for writting
+    #
+    # @return [Integer] amount of data waiting for writting
+    alias outbound_data_size get_outbound_data_size
+
+    # Returns amount of packets in outgoing write queue
+    #
+    # @return [Integer] amount of packets waiting for writting
+    alias outbound_data_count get_outbound_data_count
+
     # Returns true if the connection is in an error state, false otherwise.
     #
     # In general, you can detect the occurrence of communication errors or unexpected

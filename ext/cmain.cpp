@@ -705,6 +705,18 @@ extern "C" int evma_get_outbound_data_size (const unsigned long binding)
 }
 
 
+/***************************
+evma_get_outbound_data_size
+***************************/
+
+extern "C" int evma_get_outbound_data_count (const unsigned long binding)
+{
+	ensure_eventmachine("evma_get_outbound_data_count");
+	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
+	return ed ? ed->GetOutboundDataCount() : 0;
+}
+
+
 /**************
 evma_set_epoll
 **************/

@@ -56,6 +56,7 @@ class EventableDescriptor: public Bindable_t
 		bool ShouldDelete();
 		// Do we have any data to write? This is used by ShouldDelete.
 		virtual int GetOutboundDataSize() {return 0;}
+		virtual int GetOutboundDataCount() {return 0;}
 		virtual bool IsWatchOnly(){ return bWatchOnly; }
 
 		virtual void ScheduleClose (bool after_writing);
@@ -191,6 +192,7 @@ class ConnectionDescriptor: public EventableDescriptor
 
 		// Do we have any data to write? This is used by ShouldDelete.
 		virtual int GetOutboundDataSize() {return OutboundDataSize;}
+		virtual int GetOutboundDataCount() {return OutboundPages.size();}
 
 		virtual void StartTls();
 		virtual void SetTlsParms (const char *privkey_filename, const char *certchain_filename, bool verify_peer);
