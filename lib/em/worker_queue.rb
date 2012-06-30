@@ -77,7 +77,7 @@ module EventMachine
       @items = []
       @pending = 0
       @closed = false
-      EM.schedule self  if @on_empty
+      EM.next_tick self  if @on_empty
     end
 
     # Set concurrency level, spawn more workers if there are waiting items
@@ -123,7 +123,7 @@ module EventMachine
     # q.push(3)
     def on_empty(*args, &blk)
       @on_empty = EM.Callback(*args, &blk)
-      EM.schedule self
+      EM.next_tick self
     end
 
     # Stop waiting for a new values
