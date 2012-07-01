@@ -88,7 +88,7 @@ module EventMachine
     end
 
     # Push a value to be served by worker
-    def push(value)
+    def <<(value)
       unless EM.reactor_running? && EM.reactor_thread?
         raise NotInReactor, "You should call WorkerQueue#push inside EM reactor (use EM.schedule)"
       end
@@ -101,7 +101,12 @@ module EventMachine
         @items << value
       end
     end
-    alias :<< :push
+
+    def push(*args)
+      args.size == 1 ?
+        self << args[0] :
+        args.each{|v| self << v }
+    end
 
     # Setup pull callback which will pull new values for workers
     # Callback should call WorkerQueue#push if there is new values
