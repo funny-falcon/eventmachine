@@ -73,12 +73,11 @@ module EventMachine
         raise ArgumentError, "Should provide proc or block callback"  unless @foreach
         @on_done = opts[:on_done]
       end
-      @on_empty = opts[:on_empty]
       @items = []
       @pending = 0
       @closed = false
       @finished = false
-      EM.next_tick self  if @on_empty
+      on_empty opts[:on_empty]
     end
 
     # Set concurrency level, spawn more workers if there are waiting items
@@ -94,6 +93,7 @@ module EventMachine
         raise NotInReactor, "You should call WorkerQueue#push inside EM reactor (use EM.schedule)"
       end
       raise QueueClosed, "You not allowed to push into a closed WorkerQueue"  if @closed
+      @on_empty_cnt -= 1  if @on_empty_cnt > 0
       if @pending < @concurrency
         @pending += 1
         EM.next_tick spawn_worker(value)
@@ -111,19 +111,24 @@ module EventMachine
     #
     # @example
     #
-    # a = Queue.new
+    # jobs = Queue.new
     # sum = 0
     # wq = WorkerQueue.new(
     #     proc{|v, w| sum += v; w.done},
-    #     pric{ puts sum },
+    #     proc{ puts sum },
     #     :concurency => 10)
-    # wq.on_empty {|_wq| a.pop{|v| _wq.push(v)} }
+    # wq.on_empty {|_wq| jobs.pop{|v| _wq.push(v)} }
     #
-    # q.push(1)
-    # q.push(2)
-    # q.push(3)
+    # jobs.push(1)
+    # jobs.push(2)
+    # jobs.push(3)
     def on_empty(*args, &blk)
-      @on_empty = EM.Callback(*args, &blk)
+      @on_empty_cnt = 0
+      unless args.empty? && blk.nil?
+        @on_empty = EM.Callback(*args, &blk)
+      else
+        @on_empty = nil
+      end
       EM.next_tick self
     end
 
@@ -172,11 +177,10 @@ module EventMachine
           @pending += 1
           EM.next_tick spawn_worker(@items.shift)
           true
-        elsif @on_empty && !@closed
-          if @on_empty.arity == 0
-            EM.schedule @on_empty
-          else
-            EM.schedule{ @on_empty.call(self) }
+        elsif @on_empty && !@closed && @on_empty_cnt < @concurrency
+          @on_empty_cnt += 1
+          if @on_empty_cnt <= @concurrency
+            @on_empty.arity == 0 ? @on_empty.call : @on_empty.call(self)
           end
           true
         end
