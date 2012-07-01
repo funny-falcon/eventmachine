@@ -77,6 +77,7 @@ module EventMachine
       @items = []
       @pending = 0
       @closed = false
+      @finished = false
       EM.next_tick self  if @on_empty
     end
 
@@ -149,11 +150,19 @@ module EventMachine
     def call
       if check_items
         EM.next_tick self
-      elsif @closed && @pending == 0 && @on_done
-        EM.next_tick @on_done
+      elsif @closed && @pending == 0
+        if @on_done && !@finished
+          EM.next_tick @on_done
+        end
+        @finished = true
       end
     end
-    alias run call
+
+    def run
+      @closed = false
+      @finished = false
+      call
+    end
 
     private
 
