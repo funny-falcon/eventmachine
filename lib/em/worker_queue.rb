@@ -3,8 +3,10 @@ module EventMachine
   #
   # This class provides queue of tasks served by one or more identical workers
   #
-  # It is sweeter than using EM::Queue for same purpose
+  # It is sweeter than using EM::Queue or EM::Pool for same purpose
   # and doesn't try to do as much as EM::Iterator
+  #
+  # It has a hook for pull style interface (`on_empty` callback)
   #
   # @example
   #
@@ -13,14 +15,27 @@ module EventMachine
   #  }
   #  100.times{|i| wq.push i }
   #
+  # @example
+  #
   #  sum = 0
   #  foreach = proc{|v, t| sum += v; t.done}
-  #  on_done = proc{ puts "Sum: #{sum}" }
+  #  on_done = proc{ puts "Sum: #{sum}"; EM.stop }
   #  wq = EM::WorkerQueue.new(foreach, on_done, :concurrency => 10)
   #
   #  100.times{|i| wq.push i}
   #  wq.close
   #
+  # @example
+  #
+  #  jobs = (1..30).to_a
+  #  on_empty = proc{|que|
+  #    EM.add_timer(0.03){
+  #      (job = jogs.shift) ? que.push(job) : que.close
+  #    }
+  #  }
+  #  on_done = proc{ EM.stop }
+  #  foreach = proc{|v, t| EM.add_timer(0.03){ puts v; t.done } }
+  #  wq = EM::WorkerQueue.new(foreach, on_done :on_empty => on_empty, :concurency => 5)
   class WorkerQueue
     class QueueClosed < StandardError; end
     class AlreadyDone < StandardError; end
