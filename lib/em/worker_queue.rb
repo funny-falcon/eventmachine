@@ -92,7 +92,7 @@ module EventMachine
       @pending = 0
       @closed = false
       @finished = false
-      on_empty opts[:on_empty]
+      on_empty(*opts[:on_empty])
     end
 
     # Set concurrency level, spawn more workers if there are waiting items
