@@ -201,8 +201,8 @@ module EventMachine
       attr_accessor :_obj
       def initialize(obj, foreach, after, concurency)
         @_obj = obj
-        after = proc{ after.call(@_obj) }
-        super foreach, after, concurency
+        _after = proc{ after.call(@_obj) }
+        super foreach, _after, concurency
       end
     end
 
@@ -222,7 +222,7 @@ module EventMachine
       raise ArgumentError, 'proc required for iteration' unless foreach ||= blk
       raise RuntimeError, 'cannot iterate over an iterator more than once' if @worker && @worker.closed?
 
-      @worker = InjectQueue.new(foreach, after, @concurrency)
+      @worker = InjectQueue.new(obj, foreach, after, @concurrency)
       _iterate
     end
   end

@@ -71,6 +71,20 @@ class TestIterator < Test::Unit::TestCase
     end
   end
 
+  def test_iterator_inject_with_array
+    assert_nothing_raised do
+      EM.run {
+        after = proc{|sum|
+          assert_equal (0..10).inject(0){|s,i| s+i}, sum
+          EM.stop
+        }
+        EM::Iterator.new(0..10, 10).inject(0, after){ |sum, num, iter|
+          iter.return(sum + num)
+        }
+      }
+    end
+  end
+
   def test_iterator_with_enumerable
     assert_nothing_raised do
       EM.run {
