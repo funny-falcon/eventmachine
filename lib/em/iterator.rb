@@ -150,12 +150,18 @@ module EventMachine
       def initialize(foreach, after, concurency)
         @accum = []
         @_index = 0
-        after = proc{ after.call(@accum) }
-        super foreach, after, concurency
+        _after = proc{ after.call(@accum) }
+        super foreach, _after, concurency
       end
 
       def _assign(index, value)
         @accum[index] = value
+      end
+
+      def spawn_worker(value)
+        v = super
+        @_index += 1
+        v
       end
     end
 

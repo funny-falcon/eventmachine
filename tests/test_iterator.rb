@@ -59,6 +59,18 @@ class TestIterator < Test::Unit::TestCase
     assert_equal res, nums
   end
 
+  def test_iterator_map_with_array
+    assert_nothing_raised do
+      EM.run {
+        after = proc{|ar|
+          assert_equal [1,2,3,4,5,6,7,8,9,10,11], ar
+          EM.stop
+        }
+        EM::Iterator.new(0..10, 10).map(after){ |num,iter| iter.return(num+1) }
+      }
+    end
+  end
+
   def test_iterator_with_enumerable
     assert_nothing_raised do
       EM.run {
