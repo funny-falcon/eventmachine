@@ -36,7 +36,8 @@ extern "C" {
 		EM_SSL_HANDSHAKE_COMPLETED = 108,
 		EM_SSL_VERIFY = 109,
 		EM_PROXY_TARGET_UNBOUND = 110,
-		EM_PROXY_COMPLETED = 111
+		EM_PROXY_COMPLETED = 111,
+		EM_CONNECTION_NOTIFY_SENT_DATA = 112
 
 	};
 
@@ -54,6 +55,8 @@ extern "C" {
 	void evma_set_notify_readable (const unsigned long binding, int mode);
 	int evma_is_notify_writable (const unsigned long binding);
 	void evma_set_notify_writable (const unsigned long binding, int mode);
+	int evma_is_notify_sent_data (const unsigned long binding);
+	void evma_set_notify_sent_data (const unsigned long binding, int mode);
 
 	int evma_pause(const unsigned long binding);
 	int evma_is_paused(const unsigned long binding);
@@ -87,6 +90,7 @@ extern "C" {
 	float evma_get_pending_connect_timeout (const unsigned long binding);
 	int evma_set_pending_connect_timeout (const unsigned long binding, float value);
 	int evma_get_outbound_data_size (const unsigned long binding);
+	int evma_get_outbound_data_count (const unsigned long binding);
 	uint64_t evma_get_last_activity_time (const unsigned long);
 	int evma_send_file_data_to_connection (const unsigned long binding, const char *filename);
 

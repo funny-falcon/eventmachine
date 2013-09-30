@@ -214,6 +214,29 @@ extern "C" void evma_set_notify_writable (const unsigned long binding, int mode)
 		cd->SetNotifyWritable (mode ? true : false);
 }
 
+/***********************
+evma_is_notify_sent_data
+***********************/
+
+extern "C" int evma_is_notify_sent_data (const unsigned long binding)
+{
+	ConnectionDescriptor *cd = dynamic_cast <ConnectionDescriptor*> (Bindable_t::GetObject (binding));
+	if (cd)
+		return cd->IsNotifySentData() ? 1 : 0;
+	return -1;
+}
+
+/************************
+evma_set_notify_sent_data
+************************/
+
+extern "C" void evma_set_notify_sent_data (const unsigned long binding, int mode)
+{
+	ConnectionDescriptor *cd = dynamic_cast <ConnectionDescriptor*> (Bindable_t::GetObject (binding));
+	if (cd)
+		cd->SetNotifySentData (mode ? true : false);
+}
+
 /**********
 evma_pause
 **********/
@@ -702,6 +725,18 @@ extern "C" int evma_get_outbound_data_size (const unsigned long binding)
 	ensure_eventmachine("evma_get_outbound_data_size");
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
 	return ed ? ed->GetOutboundDataSize() : 0;
+}
+
+
+/***************************
+evma_get_outbound_data_size
+***************************/
+
+extern "C" int evma_get_outbound_data_count (const unsigned long binding)
+{
+	ensure_eventmachine("evma_get_outbound_data_count");
+	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
+	return ed ? ed->GetOutboundDataCount() : 0;
 }
 
 
