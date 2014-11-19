@@ -40,7 +40,7 @@ def manual_ssl_config
 end
 
 if ENV['CROSS_COMPILING']
-  openssl_version = ENV.fetch("OPENSSL_VERSION", "1.0.0j")
+  openssl_version = ENV.fetch("OPENSSL_VERSION", "1.0.1i")
   openssl_dir = File.expand_path("~/.rake-compiler/builds/openssl-#{openssl_version}/")
   if File.exists?(openssl_dir)
     FileUtils.mkdir_p Dir.pwd+"/openssl/"
@@ -67,9 +67,11 @@ end
 add_define 'BUILD_FOR_RUBY'
 add_define 'HAVE_RBTRAP' if have_var('rb_trap_immediate', ['ruby.h', 'rubysig.h'])
 add_define "HAVE_TBR" if have_func('rb_thread_blocking_region')# and have_macro('RUBY_UBF_IO', 'ruby.h')
+add_define "HAVE_RB_THREAD_CALL_WITHOUT_GVL" if have_header('ruby/thread.h') && have_func('rb_thread_call_without_gvl', 'ruby/thread.h')
 add_define "HAVE_INOTIFY" if inotify = have_func('inotify_init', 'sys/inotify.h')
 add_define "HAVE_OLD_INOTIFY" if !inotify && have_macro('__NR_inotify_init', 'sys/syscall.h')
 add_define 'HAVE_WRITEV' if have_func('writev', 'sys/uio.h')
+add_define 'HAVE_RB_THREAD_FD_SELECT' if have_func('rb_thread_fd_select')
 
 have_func('rb_wait_for_single_fd')
 have_func('rb_enable_interrupt')
@@ -106,7 +108,7 @@ when /mswin32/, /mingw32/, /bccwin32/
   check_libs(%w[kernel32 rpcrt4 gdi32], true)
 
   if GNU_CHAIN
-    CONFIG['LDSHARED'] = "$(CXX) -shared -lstdc++"
+    CONFIG['LDSHAREDXX'] = "$(CXX) -shared -static-libgcc -static-libstdc++"
   else
     $defs.push "-EHs"
     $defs.push "-GR"
